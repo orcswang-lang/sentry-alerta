@@ -19,9 +19,9 @@ class AlertaOptionsForm(forms.Form):
     endpoint = forms.CharField(help_text="Alerta Endpoint", required=True,
                                widget=forms.TextInput(attrs={'placeholder': 'alerta endpoint'}))
     alerta_key = forms.CharField(help_text="Alerta Authorization Key", required=True,
-                               widget=forms.TextInput(attrs={'placeholder': 'alerta authorization key'}))
+                                 widget=forms.TextInput(attrs={'placeholder': 'alerta authorization key'}))
     pool_code = forms.CharField(help_text="Alerta PoolCode", required=True,
-                                 widget=forms.TextInput(attrs={'placeholder': 'alerta PoolCode'}))
+                                widget=forms.TextInput(attrs={'placeholder': 'alerta PoolCode'}))
 
 
 class AlertaMessage(NotifyPlugin):
@@ -48,7 +48,8 @@ class AlertaMessage(NotifyPlugin):
     logger = logging.getLogger('sentry.plugins.alerta')
 
     def is_configured(self, project):
-        return all((self.get_option('endpoint', project),self.get_option('alerta_key', project),self.get_option('pool_code', project)))
+        return all((self.get_option('endpoint', project), self.get_option('alerta_key', project),
+                    self.get_option('pool_code', project)))
 
     def notify_users(self, group, event):
         project = event.project
@@ -66,35 +67,36 @@ class AlertaMessage(NotifyPlugin):
 
         data = {
             "resource": "sentry",
-            "event": '{project_name}:{level}'.format(project_name=project.name.encode('utf-8'),level=level),
+            "event": '{project_name}:{level}'.format(project_name=project.name.encode('utf-8'), level=level),
             "environment": "sentry",
             "severity": self.LEVELS.get(level, 'normal'),
             "status": "open",
             "service": ["sentry"],
             "group": pool_code.encode('utf-8'),
             "value": """##{project_name}@{server_name}:{level} {msg}> [view]({link})""".format(
-                    project_name=project.name.encode('utf-8'),
-                    level=level,
-                    msg=escape(msg).encode('utf-8'),
-                    server_name=server_name,
-                    link=escape(link).encode('utf-8'),
-                ),
+                project_name=project.name.encode('utf-8'),
+                level=level,
+                msg=escape(msg).encode('utf-8'),
+                server_name=server_name,
+                link=escape(link).encode('utf-8'),
+            ),
             "text": """##{project_name}@{server_name}:{level} {msg}> [view]({link})""".format(
-                    project_name=project.name.encode('utf-8'),
-                    level=level,
-                    msg=escape(msg).encode('utf-8'),
-                    server_name=server_name,
-                    link=escape(link).encode('utf-8'),
-                ),
-            "tags": [project.name.encode('utf-8'),pool_code.encode('utf-8'),server_name],
+                project_name=project.name.encode('utf-8'),
+                level=level,
+                msg=escape(msg).encode('utf-8'),
+                server_name=server_name,
+                link=escape(link).encode('utf-8'),
+            ),
+            "tags": ['project_name=' + project.name.encode('utf-8'), 'pool_code=' + pool_code.encode('utf-8'),
+                     "sentry", "sentry-" + pool_code.encode('utf-8')],
             "origin": "sentry",
             "type": "sentry",
         }
-        self.send_payload(endpoint=endpoint,key=alerta_key,data=data)
+        self.send_payload(endpoint=endpoint, key=alerta_key, data=data)
 
     def send_payload(self, endpoint, key, data):
         headers = {
             "Content-Type": "application/json",
-            "CustomAuthorization":'Key {key}'.format(key=key)
+            "CustomAuthorization": 'Key {key}'.format(key=key)
         }
         requests.request("POST", endpoint, data=json.dumps(data), headers=headers)
